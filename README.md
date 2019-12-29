@@ -1,12 +1,9 @@
-# `trombik.template_role`
+# `trombik.argus_clients`
 
-[![Build Status](https://travis-ci.com/trombik/trombik.template_role.svg?branch=master)](https://travis-ci.com/trombik/trombik.template_role)
+[![Build Status](https://travis-ci.com/trombik/ansible-role-argus_clients.svg?branch=master)](https://travis-ci.com/trombik/ansible-role-argus_clients)
 
-`ansible` role for `template_role`.
-
-This is a template role to develop new `ansible` role. Not to be used as
-`ansible` role. Please see [README.about.md](README.about.md) for more
-details.
+`ansible` role for `argus_clients`. This role simply installs client tools for
+`argus(8)`, i.e. `ra(1)`, `rahisto(1)`, and other tools in `argus-clients`.
 
 # Requirements
 
@@ -14,65 +11,32 @@ details.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `template_role_package` | Package name of `template_role` | `{{ __template_role_package }}` |
-| `template_role_service` | Service name of `template_role` | `{{ __template_role_service }}` |
-| `template_role_extra_packages` | A list of extra package to install | `[]` |
-| `template_role_user` | User name of `template_role` | `{{ __template_role_user }}` |
-| `template_role_group` | Group name of `template_role` | `{{ __template_role_group }}` |
-| `template_role_extra_groups` | A list of extra groups for `template_role_user` | `[]` |
-| `template_role_log_dir` | Path to log directory | `/var/log/template_role` |
-| `template_role_config_dir` | Path to the configuration directory | `{{ __template_role_config_dir }}` |
-| `template_role_config_file` | Path to `template_role.conf` | `{{ template_role_config_dir }}/sshd_config` |
-| `template_role_config` | The content of `template_role.conf` | `""` |
-| `template_role_flags` | See below | `""` |
-
-## `template_role_flags`
-
-This variable is used for overriding defaults for startup scripts. In Debian
-variants, the value is the content of `/etc/default/template_role`. In RedHat
-variants, it is the content of `/etc/sysconfig/template_role`. In FreeBSD, it
-is the content of `/etc/rc.conf.d/template_role`. In OpenBSD, the value is
-passed to `rcctl set template_role`.
+| `argus_clients_package` | Package name of `argus_clients` | `{{ __argus_clients_package }}` |
+| `argus_clients_extra_packages` | A list of extra package to install | `[]` |
 
 ## Debian
 
 | Variable | Default |
 |----------|---------|
-| `__template_role_service` | `ssh` |
-| `__template_role_package` | `openssh-server` |
-| `__template_role_config_dir` | `/etc/ssh` |
-| `__template_role_user` | `sshd` |
-| `__template_role_group` | `nogroup` |
+| `__argus_clients_package` | `argus-client` |
 
 ## FreeBSD
 
 | Variable | Default |
 |----------|---------|
-| `__template_role_service` | `openssh` |
-| `__template_role_package` | `security/openssh-portable` |
-| `__template_role_config_dir` | `/usr/local/etc/ssh` |
-| `__template_role_user` | `sshd` |
-| `__template_role_group` | `sshd` |
+| `__argus_clients_package` | `net-mgmt/argus3-clients` |
 
 ## OpenBSD
 
 | Variable | Default |
 |----------|---------|
-| `__template_role_service` | `sshd` |
-| `__template_role_package` | `""` |
-| `__template_role_config_dir` | `/etc/ssh` |
-| `__template_role_user` | `sshd` |
-| `__template_role_group` | `sshd` |
+| `__argus_clients_package` | `argus-clients` |
 
 ## RedHat
 
 | Variable | Default |
 |----------|---------|
-| `__template_role_service` | `sshd` |
-| `__template_role_package` | `openssh-server` |
-| `__template_role_config_dir` | `/etc/ssh` |
-| `__template_role_user` | `sshd` |
-| `__template_role_group` | `sshd` |
+| `__argus_clients_package` | `argus-clients` |
 
 # Dependencies
 
@@ -82,7 +46,10 @@ passed to `rcctl set template_role`.
 ---
 - hosts: localhost
   roles:
-    - trombik.template_role
+    - role: trombik.redhat_repo
+      when:
+        - ansible_os_family == 'RedHat'
+    - ansible-role-argus_clients
   pre_tasks:
     - name: Dump all hostvars
       debug:
@@ -93,8 +60,6 @@ passed to `rcctl set template_role`.
       shell: "echo; systemctl list-units --type service"
       changed_when: false
       when:
-        # in docker, init is not systemd
-        - ansible_virtualization_type != 'docker'
         - ansible_os_family == 'RedHat' or ansible_os_family == 'Debian'
     - name: list all services (FreeBSD service)
       # workaround ansible-lint: [303] service used in place of service module
@@ -103,27 +68,13 @@ passed to `rcctl set template_role`.
       when:
         - ansible_os_family == 'FreeBSD'
   vars:
-    os_template_role_flags:
-      OpenBSD: -4
-      FreeBSD: ""
-      Debian: ""
-      RedHat: ""
-
-    # on RedHat, non-default port is not allowed to listen on
-    # on FreeBSD, sshd from the base and one from the package are both running
-    os_ports:
-      OpenBSD: [22, 10022]
-      FreeBSD: [10022]
-      Debian: [22, 10022]
-      RedHat: [22]
-    template_role_flags: "{{ os_template_role_flags[ansible_os_family] }}"
-    template_role_extra_groups:
-      - bin
-    template_role_config: |
-      UseDNS no
-      {% for p in os_ports[ansible_os_family] %}
-      Port {{ p }}
-      {% endfor %}
+    redhat_repo_extra_packages:
+      - epel-release
+    redhat_repo:
+      epel:
+        mirrorlist: "http://mirrors.fedoraproject.org/mirrorlist?repo=epel-{{ ansible_distribution_major_version }}&arch={{ ansible_architecture }}"
+        gpgcheck: yes
+        enabled: yes
 ```
 
 # License
