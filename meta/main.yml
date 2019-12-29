@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Tomoyuki Sakurai
-  role_name: template_role
+  role_name: argus_clients
   description: An example template role
   company: N/A
   license: MIT
